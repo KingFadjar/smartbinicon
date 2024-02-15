@@ -2,23 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SavedData;
 use Illuminate\Http\Request;
+use App\Models\DeleteData; // Import the DeleteData model
 
-class SavedDataController extends Controller
+class DeleteDataController extends Controller
 {
-    public function deleteSelected(Request $request)
+    public function deleteData(Request $request)
     {
-        $selectedRows = $request->input('selectedRows');
+        try {
+            // Get the selected IDs
+            $selectedIds = $request->input('ids');
 
-        // Lakukan penghapusan data dari database
-        foreach ($selectedRows as $selectedRow) {
-            // Sesuaikan ini dengan kolom yang benar
-            SavedData::where('id', $selectedRow['id'])->delete();
+            // Perform deletion logic using the selected IDs
+            DeleteData::whereIn('id', $selectedIds)->delete();
+
+            return response()->json(['message' => 'Selected data deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error deleting data'], 500);
         }
-
-        return response()->json(['status' => 'success', 'message' => 'Data deleted successfully']);
     }
-
-    // Metode lain yang mungkin diperlukan
 }
+

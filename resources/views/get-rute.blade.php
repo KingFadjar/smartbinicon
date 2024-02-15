@@ -147,7 +147,9 @@
             padding: 10px;
             /* Tambahkan padding sesuai kebutuhan Anda */
           }
-
+          .form-control-sidebar {
+            max-width: 200px;
+          }
           .highlighted {
             background-color: rgba(255, 255, 255, 0.725);
             /* Nilai alpha antara 0 (transparan) hingga 1 (tidak transparan) */
@@ -224,116 +226,118 @@
             </div>
           </div>
 
+          <!-- Load Leaflet JavaScript library -->
           <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
           <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
           <script>
+
             var map = L.map('map').setView([-6.244528, 106.832361], 16);
             var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
               attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             });
             osm.addTo(map);
 
-            var redMarkerIcon = L.icon({
-              iconUrl: 'https://img.icons8.com/plasticine/100/filled-trash.png',
-              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-              iconSize: [25, 41],
-              iconAnchor: [12, 41],
-              popupAnchor: [1, -34],
-              shadowSize: [41, 41]
+        // Tambahkan layer Google Streets
+            var googleStreets = L.tileLayer('http://{s}.google.com/vt?lyrs=m&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+            });
+            googleStreets.addTo(map);
+
+            // Tambahkan layer Google Satellite
+            var googleSat = L.tileLayer('http://{s}.google.com/vt?lyrs=s&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
             });
 
-            var coordinates = [
-              [-6.244528, 106.832361],
-              [-6.245111, 106.832306],
-              [-6.245233, 106.831592],
-              [-6.245192, 106.831250],
-              [-6.245311, 106.830833],
-              [-6.245233, 106.830694],
-              [-6.244889, 106.830750],
-              [-6.244500, 106.830917],
-              [-6.244417, 106.830917],
-              [-6.244306, 106.830944],
-              [-6.244306, 106.830833],
-              [-6.243806, 106.830750],
-              [-6.243750, 106.830806],
-              [-6.243667, 106.830750],
-              [-6.243389, 106.830694],
-              [-6.243333, 106.830750],
-              [-6.243194, 106.830694],
-              [-6.242972, 106.830583],
-              [-6.242972, 106.830750],
-              [-6.242972, 106.830917],
-              [-6.242972, 106.831639],
-              [-6.242972, 106.831694],
-              [-6.242972, 106.831889],
-              [-6.242972, 106.832194],
-              [-6.242972, 106.832528],
-              [-6.242972, 106.882333],
-              [-6.242972, 106.882778],
-              [-6.242972, 106.882639],
-              [-6.242972, 106.882917],
-              [-6.242972, 106.882222],
-              [-6.242972, 106.882667],
-              [-6.242972, 106.882250],
-              [-6.242972, 106.882222],
-              [-6.242972, 106.882361],
-              [-6.242972, 106.881917]
-            ];
+            // Tambahkan kontrol layer dan overlay
+            var baseLayers = {
+                "OpenStreetMap": osm,
+                "Satellite": googleSat,
+                "Google Map": googleStreets,
+            };
 
-            var markers = [];
-            for (var i = 0; i < coordinates.length; i++) {
-              var marker = L.marker(coordinates[i], {
-                icon: redMarkerIcon
-              }).bindPopup('Titik ' + (i + 1));
-              marker.addTo(map);
-            }
+            var overlays = {
+                "ultrasonic_data": L.layerGroup().addTo(map)
+            };
+
+            L.control.layers(baseLayers, overlays).addTo(map);
+
+            // Inisialisasi markers
+            var ultrasonicData = {!! json_encode($ultrasonics) !!};
+
+            ultrasonicData.forEach(function (data) {
+                // Convert string numbers to actual numbers
+                data.lat = parseFloat(data.lat);
+                data.lng = parseFloat(data.lng);
+                data.kosong = parseInt(data.kosong);
+                data.setengah = parseInt(data.setengah);
+                data.penuh = parseInt(data.penuh);
+                data.kapasitas_sampah = parseInt(data.kapasitas_sampah);
+                data.kapasitas_mobil = parseInt(data.kapasitas_mobil);
+
+                var marker = L.circleMarker([data.lat, data.lng], {
+                color: '#146C94',
+                fillColor: '#19A7CE',
+                opacity: 0.3,
+                fillOpacity: 0.8,
+                radius: 5,
+                weight: 3,
+                }).addTo(overlays["ultrasonic_data"]).bindPopup(
+                "<br>Alamat: " + data.alamat +
+                "<br>Lat: " + data.lat +
+                "<br>Lng: " + data.lng +
+                "<br>Kosong: " + data.kosong +
+                "<br>Setengah: " + data.setengah +
+                "<br>Penuh: " + data.penuh +
+                "<br>Kapasitas Sampah: " + data.kapasitas_sampah +
+                "<br>Kapasitas Mobil: " + data.kapasitas_mobil
+                );
+
+                // Add click event on the marker to show popup
+            marker.on('click', L.bind(function (data, e) {
+                var popup = L.popup()
+                .setLatLng(e.latlng)
+                .setContent(
+                    "<br>Alamat: " + data.alamat +
+                    "<br>Lat: " + data.lat +
+                    "<br>Lng: " + data.lng +
+                    "<br>Kosong: " + data.kosong +
+                    "<br>Setengah: " + data.setengah +
+                    "<br>Penuh: " + data.penuh +
+                    "<br>Kapasitas Sampah: " + data.kapasitas_sampah +
+                    "<br>Kapasitas Mobil: " + data.kapasitas_mobil
+                )
+                .openOn(map);
+            }, null, data));
+            });
+
+
+            // Inisialisasi waypoints untuk routing
+            var waypoints = {!! collect($ultrasonics)->filter(function($ultrasonic) {
+                return is_array($ultrasonic) && array_key_exists('lat', $ultrasonic) && array_key_exists('lng', $ultrasonic);
+            })->map(function($ultrasonic) {
+                return ['lat' => $ultrasonic['lat'], 'lng' => $ultrasonic['lng']];
+            })->values() !!};
+
+            console.log(waypoints);
 
             var routingControl = L.Routing.control({
-              waypoints: [
-                L.latLng(-6.244528, 106.832361),
-                L.latLng(-6.245111, 106.832306),
-                L.latLng(-6.245233, 106.831592),
-                L.latLng(-6.245192, 106.831250),
-                L.latLng(-6.245311, 106.830833),
-                L.latLng(-6.245233, 106.830694),
-                L.latLng(-6.244889, 106.830750),
-                L.latLng(-6.244500, 106.830917),
-                L.latLng(-6.244417, 106.830917),
-                L.latLng(-6.244306, 106.830944),
-                L.latLng(-6.244306, 106.830833),
-                L.latLng(-6.243806, 106.830750),
-                L.latLng(-6.243750, 106.830806),
-                L.latLng(-6.243667, 106.830750),
-                L.latLng(-6.243389, 106.830694),
-                L.latLng(-6.243333, 106.830750),
-                L.latLng(-6.243194, 106.830694),
-                L.latLng(-6.242972, 106.830583),
-                L.latLng(-6.242972, 106.830750),
-                L.latLng(-6.242972, 106.830917),
-                L.latLng(-6.242972, 106.831639),
-                L.latLng(-6.242972, 106.831694),
-                L.latLng(-6.242972, 106.831889),
-                L.latLng(-6.242972, 106.832194),
-                L.latLng(-6.242972, 106.832528),
-                L.latLng(-6.242972, 106.882333),
-                L.latLng(-6.242972, 106.882778),
-                L.latLng(-6.242972, 106.882639),
-                L.latLng(-6.242972, 106.882917),
-                L.latLng(-6.242972, 106.882222),
-                L.latLng(-6.242972, 106.882667),
-                L.latLng(-6.242972, 106.882250),
-                L.latLng(-6.242972, 106.882222),
-                L.latLng(-6.242972, 106.882361),
-                L.latLng(-6.242972, 106.881917)
-              ],
-              routeWhileDragging: true
+                waypoints: waypoints,
+                routeWhileDragging: true
             }).addTo(map);
 
+            // Fungsi untuk menghitung rute
             function calculateRoute() {
-              var startCoord = document.getElementById('startCoord').value.split(',').map(parseFloat);
-              var endCoord = document.getElementById('endCoord').value.split(',').map(parseFloat);
-              routingControl.setWaypoints([L.latLng(startCoord), L.latLng(endCoord)]);
+                var startCoord = document.getElementById('startCoord').value.split(',').map(parseFloat);
+                var endCoord = document.getElementById('endCoord').value.split(',').map(parseFloat);
+                routingControl.setWaypoints([L.latLng(startCoord), L.latLng(endCoord)]);
             }
+
+            // Initialize DataTables
+            $(document).ready(function () {
+                $('ultrasonic_data').DataTable();
+            });
             var OpenStreetMap_BZH = L.tileLayer('https://tile.openstreetmap.bzh/br/{z}/{x}/{y}.png', {
               maxZoom: 19,
               attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles courtesy of <a href="http://www.openstreetmap.bzh/" target="_blank">Breton OpenStreetMap Team</a>',
@@ -371,40 +375,44 @@
           </script>
         </div>
 
-        <!-- Menu Jadwal -->
-        <div id="Jadwal">
-          <div class="col-md-20 mt-3">
-            <div class="card">
-              <div class="card-header border-transparent">
-                <h3 class="card-title">Jadwal SmartBin</h3>
-              </div>
-              <!-- /.card-header -->
-              <div class="card-body p-0">
-                <div class="table-responsive">
-                  <table class="table m-0">
-                    <thead>
-                      <tr>
-                        <th>Alamat</th>
-                        <th>Tanggal</th>
-                        <th>Indikator Sampah</th>
-                        <th>Kapasitas</th>
-                        <th>Titik Kordinat</th>
-                      </tr>
-                    </thead>
-                  </table>
+
+                    <!-- Menu Jadwal -->
+            <div id="Jadwal">
+                <div class="col-md-20 mt-3">
+                    <div class="card">
+                        <div class="card-header border-transparent">
+                            <h3 class="card-title">Jadwal SmartBin</h3>
+                        </div>
+                        <!-- /.card-header -->
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table m-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Alamat</th>
+                                            <th>Tanggal</th>
+                                            <th>Indikator Sampah</th>
+                                            <th>Kapasitas</th>
+                                            <th>Titik Kordinat</th>
+
+                                        </tr>
+                                    </thead>
+                                    <tbody id="JadwalBody">
+                                        <!-- Data will be displayed here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- /.card-body -->
+                        <div class="card-footer clearfix">
+                            <a href="javascript:void(0)" class="btn btn-sm btn-info float-left" id="inputDataBtn">Input Data</a>
+                            <a href="javascript:void(0)" class="btn btn-sm btn-info float-right" id="hapusDataBtn" onclick="deleteData()">Hapus Data</a>
+
+                        </div>
+                        <!-- /.card-footer -->
+                    </div>
                 </div>
-                <!-- /.table-responsive -->
-              </div>
-              <!-- /.card-body -->
-              <div class="card-footer clearfix">
-                <a href="javascript:void(0)" class="btn btn-sm btn-info float-left" id="inputDataBtn">Input Data</a>
-                <a href="javascript:void(0)" class="btn btn-sm btn-secondary float-right">Jadwal kendaraan</a>
-                <button type="button" class="btn btn-sm btn-danger float-right mr-2" onclick="deleteSelected()">Hapus</button>
-              </div>
-              <!-- /.card-footer -->
             </div>
-          </div>
-        </div>
       </section>
 
       <!-- Tambahkan script Bootstrap dan jQuery -->
@@ -414,79 +422,6 @@
       <script src="path/to/bootstrap.min.js"></script>
 
       <!-- Tambahkan script JavaScript -->
-      <script>
-        document.getElementById('inputDataBtn').addEventListener('click', function() {
-          // Tampilkan popup untuk mengisi data
-          $('#inputDataModal').modal('show');
-        });
-
-        function addData() {
-          // Logika untuk mengambil data dari inputan popup dan menambahkannya ke dalam tabel
-          var jadwalTable = document.getElementById('Jadwal').querySelector('table tbody');
-
-          // Ambil data dari inputan popup
-          var newData = [
-            document.getElementById('inputAlamat').value,
-            document.getElementById('inputTanggal').value,
-            document.getElementById('inputIndikator').value,
-            document.getElementById('inputKapasitas').value,
-            document.getElementById('inputKoordinat').value
-          ];
-
-          // Buat elemen baris baru
-          var newRow = jadwalTable.insertRow();
-
-          // Isi data ke dalam baris
-          for (var i = 0; i < newData.length; i++) {
-            var cell = newRow.insertCell(i);
-            cell.innerHTML = newData[i];
-          }
-
-          // Sembunyikan popup setelah menambahkan data
-          $('#inputDataModal').modal('hide');
-        }
-      </script>
-      
-      <!-- resources/views/simpan_rute.blade.php -->
-      <script>
-    // function simpanDanTampilkan() {
-    //     $.ajax({
-    //         type: "POST",
-    //         url: "{{ route('simpan.dan.tampilkan') }}",
-    //         data: {_token: "{{ csrf_token() }}"},
-    //         success: function(response) {
-    //             alert(response); // Tampilkan respon dari controller (opsional)
-    //         }
-    //     });
-    // }
-     // Fungsi untuk mengambil data dari server
-     function getData() {
-        $.ajax({
-            type: "GET",
-            url: "{{ route('simpan.rute') }}", // Sesuaikan dengan rute yang benar
-            success: function(response) {
-                // Handle respons dari server
-                console.log(response);
-
-                // Tampilkan data di antarmuka pengguna (contoh: console.log atau tampilkan di tabel)
-            },
-            error: function(error) {
-                // Handle kesalahan (jika diperlukan)
-                console.log(error);
-            }
-        });
-    }
-
-    // Panggil fungsi getData pada saat dokumen dimuat
-    $(document).ready(function() {
-        getData();
-    });
-
-    // Fungsi untuk menutup modal
-    function closeModal() {
-        $("#inputDataModal").modal("hide");
-    }
-</script>
 
       <!-- Popup Modal -->
       <div class="modal fade" id="inputDataModal" tabindex="-1" role="dialog" aria-labelledby="inputDataModalLabel" aria-hidden="true">
@@ -500,8 +435,8 @@
             </div>
             <div class="modal-body">
               <!-- Form untuk mengisi data -->
-              <form action="{{ url('/simpan-jadwal') }}" method="post">
-                @csrf
+              <form action="{{ route('simpan-data') }}" method="post">
+                  @csrf
                 <div class="form-group">
                   <label for="inputAlamat">Alamat</label>
                   <input type="text" class="form-control" id="inputAlamat" placeholder="Masukkan alamat" name="alamat" required>
@@ -532,194 +467,181 @@
         </div>
       </div>
 
-      <!-- Skrip JavaScript untuk menangani aksi penutup modal -->
       <script>
-        function closeModal() {
-          // Sembunyikan modal
-          $('#inputDataModal').modal('hide');
-
-          // Reset nilai formulir jika diperlukan
-          document.getElementById('inputAlamat').value = '';
-          document.getElementById('inputTanggal').value = '';
-          document.getElementById('inputIndikator').value = '';
-          document.getElementById('inputKapasitas').value = '';
-          document.getElementById('inputKoordinat').value = '';
-        }
-      </script>
-
-      <!-- Tambahkan script Bootstrap (pastikan untuk menyertakan file Bootstrap sebelumnya) -->
-      <script src="path/to/bootstrap.min.js"></script>
-
-      <!-- Tambahkan script JavaScript -->
-      <script>
-        // Memeriksa apakah ada data yang sudah disimpan di lokal penyimpanan
-        var savedData = JSON.parse(localStorage.getItem('savedData')) || [];
-
-        // Memulai dengan memuat data yang sudah ada
-        loadSavedData();
-
-        document.getElementById('inputDataBtn').addEventListener('click', function() {
-          // Tampilkan popup untuk mengisi data
+        // Fungsi untuk membuka modal
+        function openModal() {
           $('#inputDataModal').modal('show');
+        }
+
+        // Fungsi untuk menutup modal
+        function closeModal() {
+          $('#inputDataModal').modal('hide');
+        }
+
+            // Inisialisasi DataTables
+        $(document).ready(function() {
+            $('#jadwalTable').DataTable();
         });
 
-        function addData() {
-          // Logika untuk mengambil data dari inputan popup dan menambahkannya ke dalam tabel
-          var jadwalTable = document.getElementById('Jadwal').querySelector('table tbody');
+        // Fungsi untuk menampilkan data ke dalam tabel
+        function tampilkanData(response) {
+            // Hapus data lama dari tabel
+            $('#jadwalTable tbody').empty();
 
-          // Ambil data dari inputan popup
-          var newData = [
-            document.getElementById('inputAlamat').value,
-            document.getElementById('inputTanggal').value,
-            document.getElementById('inputIndikator').value,
-            document.getElementById('inputKapasitas').value,
-            document.getElementById('inputKoordinat').value
-          ];
-
-          // Tambahkan data baru ke dalam array
-          savedData.push(newData);
-
-          // Simpan data ke lokal penyimpanan
-          localStorage.setItem('savedData', JSON.stringify(savedData));
-
-          // Tambahkan data ke dalam tabel
-          addDataToTable(newData);
-
-          // Sembunyikan popup setelah menambahkan data
-          $('#inputDataModal').modal('hide');
-
-          // Reset nilai formulir jika diperlukan
-          resetForm();
+            // Iterasi melalui data dan tambahkan ke dalam tabel
+            $.each(response, function(index, data) {
+                $('#jadwalTable tbody').append(
+                    '<tr>' +
+                        '<td>' + data.alamat + '</td>' +
+                        '<td>' + data.tanggal + '</td>' +
+                        '<td>' + data.indikator + '</td>' +
+                        '<td>' + data.kapasitas + '</td>' +
+                        '<td>' + data.koordinat + '</td>' +
+                    '</tr>'
+                );
+            });
         }
 
-        function loadSavedData() {
-          // Hapus semua baris yang ada di tabel sebelum memuat data
-          var jadwalTable = document.getElementById('Jadwal').querySelector('table tbody');
-          jadwalTable.innerHTML = '';
+                // Fungsi untuk mengirim data formulir ke server
+        function simpanData() {
+            // Mendapatkan nilai dari input formulir
+            var alamat = $('#inputAlamat').val();
+            var tanggal = $('#inputTanggal').val();
+            var indikator = $('#inputIndikator').val();
+            var kapasitas = $('#inputKapasitas').val();
+            var koordinat = $('#inputKoordinat').val();
 
-          // Tampilkan data yang masih ada di lokal penyimpanan
-          for (var i = 0; i < savedData.length; i++) {
-            if (!isRowDeleted(savedData[i])) {
-              addDataToTable(savedData[i]);
-            }
-          }
-        }
-
-        function isRowDeleted(data) {
-          // Periksa apakah data dengan ID yang sama sudah dihapus
-          var jadwalTable = document.getElementById('Jadwal').querySelector('table tbody');
-          for (var i = 0; i < jadwalTable.rows.length; i++) {
-            var row = jadwalTable.rows[i];
-            if (row.dataset.id === generateIdFromData(data)) {
-              return false; // Baris masih ada di tabel, belum dihapus
-            }
-          }
-          return true; // Baris sudah dihapus
-        }
-
-        function generateIdFromData(data) {
-          // Buat ID dari data (sesuaikan dengan cara Anda menyimpan ID)
-          return data.join('_'); // Contoh, menggabungkan semua nilai sebagai ID
-        }
-
-        function addDataToTable(data) {
-          // Tambahkan data ke dalam tabel
-          var jadwalTable = document.getElementById('Jadwal').querySelector('table tbody');
-          var newRow = jadwalTable.insertRow();
-
-          for (var i = 0; i < data.length; i++) {
-            var cell = newRow.insertCell(i);
-            cell.innerHTML = data[i];
-          }
-
-          // Tambahkan checkbox pada setiap baris
-          var checkboxCell = newRow.insertCell(data.length);
-          var checkbox = document.createElement('input');
-          checkbox.type = 'checkbox';
-          checkboxCell.appendChild(checkbox);
-          // Tambahkan data-id attribute ke setiap baris
-          newRow.dataset.id = generateUniqueId();
-        }
-
-        function resetForm() {
-          // Reset nilai formulir
-          document.getElementById('inputAlamat').value = '';
-          document.getElementById('inputTanggal').value = '';
-          document.getElementById('inputIndikator').value = '';
-          document.getElementById('inputKapasitas').value = '';
-          document.getElementById('inputKoordinat').value = '';
-        }
-
-        function deleteSelected() {
-          var jadwalTable = document.getElementById('Jadwal').querySelector('table tbody');
-          var selectedRows = [];
-
-          // Cari baris yang dipilih
-          for (var i = 0; i < jadwalTable.rows.length; i++) {
-            var row = jadwalTable.rows[i];
-
-            // Periksa apakah ada elemen checkbox pada baris
-            var checkbox = row.cells[row.cells.length - 1].querySelector('input[type="checkbox"]');
-            if (checkbox && checkbox.checked) {
-              selectedRows.push(row);
-            }
-          }
-
-          // Hapus baris yang dipilih dari penyimpanan lokal dan tabel
-          for (var i = selectedRows.length - 1; i >= 0; i--) {
-            var row = selectedRows[i];
-            var index = row.rowIndex - 1; // Mengurangkan satu karena baris header tidak dihitung
-
-            // Kirim permintaan Ajax ke server untuk menghapus data
-            var id = row.dataset.id; // Sesuaikan dengan cara Anda menyimpan ID
-            deleteDataOnServer(id); // Panggil fungsi untuk menghapus data di server
-
-            savedData.splice(index, 1);
-            localStorage.setItem('savedData', JSON.stringify(savedData));
-            jadwalTable.deleteRow(index);
-          }
-        }
-        // Fungsi untuk menghapus data pada server
-        function deleteDataOnServer(id) {
-          $.ajax({
+            // Menggunakan AJAX untuk mengirim data ke server
+            $.ajax({
             type: 'POST',
-            url: '/delete-endpoint',
+            url: '{{ route("simpan-data") }}',
             data: {
-              id: id
+                _token: '{{ csrf_token() }}',
+                alamat: alamat,
+                tanggal: tanggal,
+                indikator: indikator,
+                kapasitas: kapasitas,
+                koordinat: koordinat
             },
             success: function(response) {
-              // Handle respons dari server
-              console.log(response);
+                // Panggil fungsi untuk menampilkan data setelah berhasil disimpan
+                tampilkanData(response);
+
+                // Clear input formulir setelah berhasil disimpan
+                $('#inputAlamat, #inputTanggal, #inputIndikator, #inputKapasitas, #inputKoordinat').val('');
             },
             error: function(error) {
-              console.error('Error:', error);
+                console.error('Gagal menyimpan data:', error);
             }
-          });
-          // Tambahkan CSRF token ke setiap permintaan Ajax
-          $.ajaxSetup({
-            headers: {
-              'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            });
+        }
+
+        // Menambahkan event listener pada tombol "Input Data"
+        $('#inputDataBtn').on('click', function() {
+          openModal();
+        });
+
+        // Menambahkan event listener pada tombol "Simpan"
+        $('#inputDataModal').on('click', '.btn-primary', function() {
+          simpanData();
+        });
+
+        $(document).ready(function() {
+            // Function to fetch and display data
+            function fetchDataAndDisplay() {
+              $.ajax({
+                url: '/tampil-data', // Replace with the actual URL to fetch data
+                method: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                  if (response.data) {
+                    // Clear existing rows
+                    $('#Jadwal tbody').empty();
+
+                    // Append new rows with fetched data
+                    $.each(response.data, function(index, data) {
+                      var newRow = '<tr>' +
+                        '<td>' + data.alamat + '</td>' +
+                        '<td>' + data.tanggal + '</td>' +
+                        '<td>' + data.indikator + '</td>' +
+                        '<td>' + data.kapasitas + '</td>' +
+                        '<td>' + data.koordinat + '</td>' +
+                        '</tr>';
+                      $('#Jadwal tbody').append(newRow);
+                    });
+                  }
+                },
+                error: function(error) {
+                  console.log('Error fetching data:', error);
+                }
+              });
             }
+
+            // Call the function to fetch and display data initially
+            fetchDataAndDisplay();
+
+            // Add click event to the "Tampilkan Data" button
+            $('#tampilkanDataBtn').on('click', function() {
+              // Call the function to fetch and display data when the button is clicked
+              fetchDataAndDisplay();
+            });
           });
+
+    // Call the function to fetch and display data initially
+    fetchDataAndDisplay();
+
+    // Add click event to the "Tampilkan Data" button
+    $('#tampilkanDataBtn').on('click', function() {
+        // Call the function to fetch and display data when the button is clicked
+        fetchDataAndDisplay();
+    });
+
+    //hapus
+    function deleteData() {
+        // Implementasi logika penghapusan satu baris data dari yang terakhir
+        // Anda dapat menggunakan AJAX atau metode lain sesuai kebutuhan
+        var lastRowId = $('#JadwalBody tr:last').data('id');
+
+        if (lastRowId) {
+            // Lakukan logika penghapusan menggunakan lastRowId
+            $.ajax({
+                url: '/delete-data', // Ganti dengan URL sebenarnya untuk penghapusan
+                method: 'DELETE',
+                dataType: 'json',
+                data: {
+                    ids: [lastRowId]
+                },
+                success: function(response) {
+                    // Tangani respons sukses
+                    console.log('Baris terakhir dihapus:', response);
+                    // Panggil fungsi untuk mengambil dan menampilkan data setelah penghapusan
+                    fetchDataAndDisplay();
+                },
+                error: function(error) {
+                    console.log('Error menghapus baris terakhir:', error);
+                }
+            });
+        } else {
+            alert('Silahkan Hubungi Admin');
         }
-      </script>
+    }
 
-      <!-- Popup Modal -->
-      <div class="modal fade" id="inputDataModal" tabindex="-1" role="dialog" aria-labelledby="inputDataModalLabel" aria-hidden="true">
-        <!-- ... (sesuaikan dengan bagian sebelumnya) ... -->
-      </div>
-
-      <!-- Skrip JavaScript untuk menangani aksi penutup modal -->
-      <script>
-        function closeModal() {
-          // Sembunyikan modal
-          $('#inputDataModal').modal('hide');
-
-          // Reset nilai formulir jika diperlukan
-          resetForm();
+    //ambil coordinate
+    $.ajax({
+        url: '/get-coordinates',
+        method: 'GET',
+        dataType: 'json',
+        success: function(data) {
+          var routingControl = L.Routing.control({
+            waypoints: data.waypoints,
+            routeWhileDragging: true
+          }).addTo(map);
+        },
+        error: function(error) {
+          console.error('Error fetching coordinates:', error);
         }
-      </script>
-
+      });
+    </script>
       <!-- Control Sidebar -->
       <aside class="control-sidebar control-sidebar-dark">
         <!-- Control sidebar content goes here -->

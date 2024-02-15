@@ -5,8 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class SavedData extends Model
+class DeleteData extends Model
 {
     use HasFactory;
-    protected $fillable = ['alamat', 'tanggal', 'indikator_sampah', 'kapasitas', 'titik_koordinat'];
+
+    protected $table = 'data'; // Set the table name
 }

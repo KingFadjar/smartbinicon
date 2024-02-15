@@ -19,7 +19,15 @@ class SmartbinVisitController extends Controller
      */
 
     public function getSmartbinData()
-    {
-        return view('smartbin-visit-rute');
-    }
+     {
+         // Example usage of UltrasonicController methods
+         $ultrasonicController = new UltrasonicController();
+
+         // Assuming you want to get all ultrasonic data
+         $ultrasonics = $ultrasonicController->index();
+
+         // You can then use $ultrasonics in your view or perform any other actions
+
+         return view('smartbin-visit-rute', ['ultrasonics' => $ultrasonics]);
+     }
 }

@@ -7,21 +7,17 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\RuteController;
 use App\Http\Controllers\LokasiController;
-use App\Http\Controllers\SavedDataController;
-use App\Http\Controllers\SimpanRuteController;
 use App\Http\Controllers\SmartbinVisitController;
 use App\Http\Controllers\KapasitassampahController;
+use App\Http\Controllers\DataController;
+use App\Http\Controllers\TampilDataController;
+use App\Http\Controllers\DeleteDataController;
+use App\Http\Controllers\UltrasonicController;
 
 /*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
+Develop by https://www.linkedin.com/in/muhamad-fajar-6ab261233/
 */
+
 
 Route::get('/', function () {
     return view('auth.login');
@@ -35,10 +31,22 @@ Route::get('/get-lokasi', [LokasiController::class, 'getLokasi'])->name('get-lok
 Route::get('/get-rute', [RuteController::class, 'getSmartbinData'])->name('get-rute');
 Route::get('/smartbin-visit-rute', [SmartbinVisitController::class, 'getSmartbinData'])->name('smartbin-visit-rute');
 Route::get('/get-centimeter-data', [KapasitassampahController::class, 'getCentimeterData'])->name('get-centimeter-data');
-Route::post('/delete-endpoint', [SavedDataController::class, 'deleteSelected']);
-Route::post('/delete-endpoint', 'DeleteController@deleteData');
-Route::post('/simpan-rute', [SimpanRuteController::class, 'simpanData'])->name('simpan.rute');
-Route::get('/tampilkan-formulir', [SimpanRuteController::class, 'tampilkanFormulir'])->name('tampilkan.formulir');
-Route::post('/simpan-dan-tampilkan', [SimpanRuteController::class, 'simpanDanTampilkan'])->name('simpan.dan.tampilkan');
-Route::get('/nama_tampilan', [SimpanRuteController::class, 'index'])->name('savedjadwal');
-Route::post('/simpan-jadwal', [SimpanRuteController::class, 'store']);
+
+//simpan data popup dari input data
+Route::post('/simpan-data', [DataController::class, 'simpanData'])->name('simpan-data');
+//tampilkan data dari asil input data popup
+Route::get('/tampil-data', [TampilDataController::class, 'tampilData']);
+//delete data
+Route::post('/delete-data', [DeleteDataController::class, 'deleteData']);
+// Menampilkan daftar data ultrasonic
+Route::get('/ultrasonic', [UltrasonicController::class, 'index'])->name('ultrasonic.index');
+
+// Menampilkan formulir untuk membuat data ultrasonic baru
+Route::get('/ultrasonic/create', [UltrasonicController::class, 'create'])->name('ultrasonic.create');
+
+// Menyimpan data ultrasonic baru
+Route::post('/ultrasonic', [UltrasonicController::class, 'store'])->name('ultrasonic.store');
+
+// Menampilkan data ultrasonic tertentu
+Route::get('/ultrasonic/{id}', [UltrasonicController::class, 'show'])->name('ultrasonic.show');
+// kapasitas sampah

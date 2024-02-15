@@ -212,7 +212,7 @@
               <input type="text" class="form-control form-control-sidebar" id="startCoord" name="startCoord" placeholder="Lat, Long">
               <span class="input-group-text">Titik Tujuan</span>
               <input type="text" class="form-control form-control-sidebar" id="endCoord" name="endCoord" placeholder="Lat, Long">
-              <button type="button" class="btn btn-outline-secondary" onclick="calculateRoute()"><i class="fas fa-fw fa-search"></i></button>        
+              <button type="button" class="btn btn-outline-secondary" onclick="calculateRoute()"><i class="fas fa-fw fa-search"></i></button>
             </form>
         </div>
         </div>
@@ -251,107 +251,107 @@
         });
         osm.addTo(map);
 
-        var redMarkerIcon = L.icon({
-          iconUrl: 'https://github.com/haltapoe/smartbinlaravel.git/public/Truck.png',
-          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34],
-          shadowSize: [41, 41]
+        // Tambahkan layer Google Streets
+        var googleStreets = L.tileLayer('http://{s}.google.com/vt?lyrs=m&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+        googleStreets.addTo(map);
+
+        // Tambahkan layer Google Satellite
+        var googleSat = L.tileLayer('http://{s}.google.com/vt?lyrs=s&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         });
 
-        var coordinates = [
-          [-6.244528, 106.832361],
-          [-6.245111, 106.832306],
-          [-6.245233, 106.831592],
-          [-6.245192, 106.831250],
-          [-6.245311, 106.830833],
-          [-6.245233, 106.830694],
-          [-6.244889, 106.830750],
-          [-6.244500, 106.830917],
-          [-6.244417, 106.830917],
-          [-6.244306, 106.830944],
-          [-6.244306, 106.830833],
-          [-6.243806, 106.830750],
-          [-6.243750, 106.830806],
-          [-6.243667, 106.830750],
-          [-6.243389, 106.830694],
-          [-6.243333, 106.830750],
-          [-6.243194, 106.830694],
-          [-6.242972, 106.830583],
-          [-6.242972, 106.830750],
-          [-6.242972, 106.830917],
-          [-6.242972, 106.831639],
-          [-6.242972, 106.831694],
-          [-6.242972, 106.831889],
-          [-6.242972, 106.832194],
-          [-6.242972, 106.832528],
-          [-6.242972, 106.882333],
-          [-6.242972, 106.882778],
-          [-6.242972, 106.882639],
-          [-6.242972, 106.882917],
-          [-6.242972, 106.882222],
-          [-6.242972, 106.882667],
-          [-6.242972, 106.882250],
-          [-6.242972, 106.882222],
-          [-6.242972, 106.882361],
-          [-6.242972, 106.881917]
-        ];
+        // Tambahkan kontrol layer dan overlay
+        var baseLayers = {
+            "OpenStreetMap": osm,
+            "Satellite": googleSat,
+            "Google Map": googleStreets,
+        };
 
-        var markers = [];
-        for (var i = 0; i < coordinates.length; i++) {
-          var marker = L.marker(coordinates[i], {
-            icon: redMarkerIcon
-          }).bindPopup('Titik ' + (i + 1));
-          marker.addTo(map);
-        }
+        var overlays = {
+            "ultrasonic_data": L.layerGroup().addTo(map)
+        };
+
+        L.control.layers(baseLayers, overlays).addTo(map);
+
+        // Inisialisasi markers
+        var ultrasonicData = {!! json_encode($ultrasonics) !!};
+
+        ultrasonicData.forEach(function (data) {
+            // Convert string numbers to actual numbers
+            data.lat = parseFloat(data.lat);
+            data.lng = parseFloat(data.lng);
+            data.kosong = parseInt(data.kosong);
+            data.setengah = parseInt(data.setengah);
+            data.penuh = parseInt(data.penuh);
+            data.kapasitas_sampah = parseInt(data.kapasitas_sampah);
+            data.kapasitas_mobil = parseInt(data.kapasitas_mobil);
+
+            var marker = L.circleMarker([data.lat, data.lng], {
+            color: '#146C94',
+            fillColor: '#19A7CE',
+            opacity: 0.3,
+            fillOpacity: 0.8,
+            radius: 5,
+            weight: 3,
+            }).addTo(overlays["ultrasonic_data"]).bindPopup(
+            "<br>Alamat: " + data.alamat +
+            "<br>Lat: " + data.lat +
+            "<br>Lng: " + data.lng +
+            "<br>Kosong: " + data.kosong +
+            "<br>Setengah: " + data.setengah +
+            "<br>Penuh: " + data.penuh +
+            "<br>Kapasitas Sampah: " + data.kapasitas_sampah +
+            "<br>Kapasitas Mobil: " + data.kapasitas_mobil
+            );
+
+            // Add click event on the marker to show popup
+        marker.on('click', L.bind(function (data, e) {
+            var popup = L.popup()
+            .setLatLng(e.latlng)
+            .setContent(
+                "<br>Alamat: " + data.alamat +
+                "<br>Lat: " + data.lat +
+                "<br>Lng: " + data.lng +
+                "<br>Kosong: " + data.kosong +
+                "<br>Setengah: " + data.setengah +
+                "<br>Penuh: " + data.penuh +
+                "<br>Kapasitas Sampah: " + data.kapasitas_sampah +
+                "<br>Kapasitas Mobil: " + data.kapasitas_mobil
+            )
+            .openOn(map);
+        }, null, data));
+        });
+
+
+        // Inisialisasi waypoints untuk routing
+        var waypoints = {!! collect($ultrasonics)->filter(function($ultrasonic) {
+            return is_array($ultrasonic) && array_key_exists('lat', $ultrasonic) && array_key_exists('lng', $ultrasonic);
+        })->map(function($ultrasonic) {
+            return ['lat' => $ultrasonic['lat'], 'lng' => $ultrasonic['lng']];
+        })->values() !!};
+
+        console.log(waypoints);
 
         var routingControl = L.Routing.control({
-          waypoints: [
-            L.latLng(-6.244528, 106.832361),
-            L.latLng(-6.245111, 106.832306),
-            L.latLng(-6.245233, 106.831592),
-            L.latLng(-6.245192, 106.831250),
-            L.latLng(-6.245311, 106.830833),
-            L.latLng(-6.245233, 106.830694),
-            L.latLng(-6.244889, 106.830750),
-            L.latLng(-6.244500, 106.830917),
-            L.latLng(-6.244417, 106.830917),
-            L.latLng(-6.244306, 106.830944),
-            L.latLng(-6.244306, 106.830833),
-            L.latLng(-6.243806, 106.830750),
-            L.latLng(-6.243750, 106.830806),
-            L.latLng(-6.243667, 106.830750),
-            L.latLng(-6.243389, 106.830694),
-            L.latLng(-6.243333, 106.830750),
-            L.latLng(-6.243194, 106.830694),
-            L.latLng(-6.242972, 106.830583),
-            L.latLng(-6.242972, 106.830750),
-            L.latLng(-6.242972, 106.830917),
-            L.latLng(-6.242972, 106.831639),
-            L.latLng(-6.242972, 106.831694),
-            L.latLng(-6.242972, 106.831889),
-            L.latLng(-6.242972, 106.832194),
-            L.latLng(-6.242972, 106.832528),
-            L.latLng(-6.242972, 106.882333),
-            L.latLng(-6.242972, 106.882778),
-            L.latLng(-6.242972, 106.882639),
-            L.latLng(-6.242972, 106.882917),
-            L.latLng(-6.242972, 106.882222),
-            L.latLng(-6.242972, 106.882667),
-            L.latLng(-6.242972, 106.882250),
-            L.latLng(-6.242972, 106.882222),
-            L.latLng(-6.242972, 106.882361),
-            L.latLng(-6.242972, 106.881917)
-          ],
-          routeWhileDragging: true
+            waypoints: waypoints,
+            routeWhileDragging: true
         }).addTo(map);
 
+        // Fungsi untuk menghitung rute
         function calculateRoute() {
-          var startCoord = document.getElementById('startCoord').value.split(',').map(parseFloat);
-          var endCoord = document.getElementById('endCoord').value.split(',').map(parseFloat);
-          routingControl.setWaypoints([L.latLng(startCoord), L.latLng(endCoord)]);
+            var startCoord = document.getElementById('startCoord').value.split(',').map(parseFloat);
+            var endCoord = document.getElementById('endCoord').value.split(',').map(parseFloat);
+            routingControl.setWaypoints([L.latLng(startCoord), L.latLng(endCoord)]);
         }
+
+        // Initialize DataTables
+        $(document).ready(function () {
+            $('ultrasonic_data').DataTable();
+        });
         var OpenStreetMap_BZH = L.tileLayer('https://tile.openstreetmap.bzh/br/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles courtesy of <a href="http://www.openstreetmap.bzh/" target="_blank">Breton OpenStreetMap Team</a>',
@@ -391,347 +391,256 @@
 
     <!-- Menu Jadwal -->
     <div id="Jadwal">
-      <div class="col-md-20 mt-3">
-        <div class="card">
-          <div class="card-header border-transparent">
-            <h3 class="card-title">Jadwal SmartBin</h3>
-          </div>
-          <!-- /.card-header -->
-          <div class="card-body p-0">
-            <div class="table-responsive">
-              <table class="table m-0">
-                <thead>
-                  <tr>
-                    <th>Alamat</th>
-                    <th>Tanggal</th>
-                    <th>Indikator Sampah</th>
-                    <th>Kapasitas</th>
-                    <th>Titik Kordinat</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 1</a></td>
-                    <td>02 Februari 2024</td>
-                    <td><span class="badge badge-success">09:00</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f39c12" data-height="20">50 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.244528, 106.832361</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 2</a></td>
-                    <td>03 Maret 2024</td>
-                    <td><span class="badge badge-success">10:00</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#00a65a" data-height="20">15 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.245233, 106.831592</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 3</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-warning">08:00</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f39c12" data-height="20">50 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.245192, 106.831250</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan kuningan 4</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-danger">Delivered</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f56954" data-height="20">100 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.245311, 106.830833</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 5</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-info">Processing</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#00c0ef" data-height="20">10 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.245233, 106.830694</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 6</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-warning">Pending</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f39c12" data-height="20">50 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.244889, 106.830750</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 7</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-danger">Delivered</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f56954" data-height="20">100 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.244500, 106.830917</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 8</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-info">Processing</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#00c0ef" data-height="20">5 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.244417, 106.830917</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 9</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-warning">Pending</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f39c12" data-height="20">50 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.244306, 106.830944</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 10</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-danger">Delivered</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f56954" data-height="20">80 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.244306, 106.830833</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 11</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-success">Shipped</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#00a65a" data-height="20">3 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.243806, 106.830750</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 12</a></td>
-                    <td>02 Februari 2024</td>
-                    <td><span class="badge badge-success">09:00</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f39c12" data-height="20">45 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.243750, 106.830806</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Sudirman 13</a></td>
-                    <td>03 Maret 2024</td>
-                    <td><span class="badge badge-success">10:00</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#00a65a" data-height="20">3 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.243667, 106.830750</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 14</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-warning">08:00</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f39c12" data-height="20">25 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.243389, 106.830694</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan kuningan 15</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-danger">Delivered</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f56954" data-height="20">75 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.243333, 106.830750</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 16</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-info">Processing</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#00c0ef" data-height="20">35 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.243194, 106.830694</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 17</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-warning">Pending</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f39c12" data-height="20">35 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.830583</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 18</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-danger">Delivered</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f56954" data-height="20">83 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.830750</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 19</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-info">Processing</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#00c0ef" data-height="20">25 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.830917</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 20</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-warning">Pending</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f39c12" data-height="20">35 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.831639</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 21</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-danger">Delivered</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f56954" data-height="20">79 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.831694</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 22</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-success">Shipped</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#00a65a" data-height="20">64 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.831889</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 23</a></td>
-                    <td>02 Februari 2024</td>
-                    <td><span class="badge badge-success">09:00</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f39c12" data-height="20">89 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.832194</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 24</a></td>
-                    <td>03 Maret 2024</td>
-                    <td><span class="badge badge-success">10:00</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#00a65a" data-height="20">56 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.832528</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 25</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-warning">08:00</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f39c12" data-height="20">97 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.882333</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan kuningan 26</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-danger">Delivered</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f56954" data-height="20">24 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.882778</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 27</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-info">Processing</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#00c0ef" data-height="20">24 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.882639</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 28</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-warning">Pending</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f39c12" data-height="20">57 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.882917</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 29</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-danger">Delivered</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f56954" data-height="20">34 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.882222</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 30</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-info">Processing</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#00c0ef" data-height="20">24 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.882667</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 31</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-warning">Pending</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f39c12" data-height="20">97 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.882250</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 32</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-danger">Delivered</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f56954" data-height="20">66 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.882222</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 33</a></td>
-                    <td>20 Desember 2023</td>
-                    <td><span class="badge badge-success">Shipped</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#00a65a" data-height="20">57 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.882361</a></td>
-                  </tr>
-                  <tr>
-                    <td><a href="pages/examples/invoice.html">Jalan Kuningan 34</a></td>
-                    <td>02 Februari 2024</td>
-                    <td><span class="badge badge-success">09:00</span></td>
-                    <td>
-                      <div class="sparkbar" data-color="#f39c12" data-height="20">67 Liter</div>
-                    </td>
-                    <td><a href="pages/examples/invoice.html">-6.242972, 106.881917</a></td>
-                  </tr>
-                </tbody>
-              </table>
+        <div class="col-md-20 mt-3">
+            <div class="card">
+                <div class="card-header border-transparent">
+                    <h3 class="card-title">Jadwal SmartBin</h3>
+                </div>
+                <!-- /.card-header -->
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table m-0">
+                            <thead>
+                                <tr>
+                                    <th>Alamat</th>
+                                    <th>Tanggal</th>
+                                    <th>Indikator Sampah</th>
+                                    <th>Kapasitas</th>
+                                    <th>Titik Kordinat</th>
+
+                                </tr>
+                            </thead>
+                            <tbody id="JadwalBody">
+                                <!-- Data will be displayed here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- /.card-body -->
+                <div class="card-footer clearfix">
+                    <a href="javascript:void(0)" class="btn btn-sm btn-info float-left" id="inputDataBtn">Input Data</a>
+                    <a href="javascript:void(0)" class="btn btn-sm btn-info float-right" id="hapusDataBtn" onclick="deleteData()">Hapus Data</a>
+
+                </div>
+                <!-- /.card-footer -->
             </div>
-            <!-- /.table-responsive -->
-          </div>
-          <!-- /.card-body -->
-          <div class="card-footer clearfix">
-            <a href="javascript:void(0)" class="btn btn-sm btn-info float-left" id="inputDataBtn">Input Data</a>
-            <a href="javascript:void(0)" class="btn btn-sm btn-secondary float-right">Jadwal kendaraan</a>
-            <button type="button" class="btn btn-sm btn-danger float-right mr-2" onclick="deleteSelected()">Hapus</button>
-          </div>
-          <!-- /.card-footer -->
         </div>
-      </div>
     </div>
-    </section>
+</section>
+
+        <!-- Tambahkan script Bootstrap dan jQuery -->
+        <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+        <!-- Tambahkan script Bootstrap (pastikan untuk menyertakan file Bootstrap sebelumnya) -->
+        <script src="path/to/bootstrap.min.js"></script>
+
+        <!-- Tambahkan script JavaScript -->
+
+        <!-- Popup Modal -->
+        <div class="modal fade" id="inputDataModal" tabindex="-1" role="dialog" aria-labelledby="inputDataModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="inputDataModalLabel">Input Data</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            </div>
+            <div class="modal-body">
+            <!-- Form untuk mengisi data -->
+            <form action="{{ route('simpan-data') }}" method="post">
+                @csrf
+                <div class="form-group">
+                <label for="inputAlamat">Alamat</label>
+                <input type="text" class="form-control" id="inputAlamat" placeholder="Masukkan alamat" name="alamat" required>
+                </div>
+                <div class="form-group">
+                <label for="inputTanggal">Tanggal</label>
+                <input type="text" class="form-control" id="inputTanggal" placeholder="Masukkan tanggal" name="tanggal" required>
+                </div>
+                <div class="form-group">
+                <label for="inputIndikator">Indikator Sampah</label>
+                <input type="text" class="form-control" id="inputIndikator" placeholder="Masukkan indikator sampah" name="indikator" required>
+                </div>
+                <div class="form-group">
+                <label for="inputKapasitas">Kapasitas</label>
+                <input type="text" class="form-control" id="inputKapasitas" placeholder="Masukkan kapasitas" name="kapasitas" required>
+                </div>
+                <div class="form-group">
+                <label for="inputKoordinat">Titik Koordinat</label>
+                <input type="text" class="form-control" id="inputKoordinat" placeholder="Masukkan titik koordinat" name="koordinat" required>
+                </div>
+                <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>
+                <button type="button" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+            </div>
+        </div>
+        </div>
+        </div>
+
+        <script>
+        // Fungsi untuk membuka modal
+        function openModal() {
+        $('#inputDataModal').modal('show');
+        }
+
+        // Fungsi untuk menutup modal
+        function closeModal() {
+        $('#inputDataModal').modal('hide');
+        }
+
+            // Inisialisasi DataTables
+        $(document).ready(function() {
+            $('#jadwalTable').DataTable();
+        });
+
+        // Fungsi untuk menampilkan data ke dalam tabel
+        function tampilkanData(response) {
+            // Hapus data lama dari tabel
+            $('#jadwalTable tbody').empty();
+
+            // Iterasi melalui data dan tambahkan ke dalam tabel
+            $.each(response, function(index, data) {
+                $('#jadwalTable tbody').append(
+                    '<tr>' +
+                        '<td>' + data.alamat + '</td>' +
+                        '<td>' + data.tanggal + '</td>' +
+                        '<td>' + data.indikator + '</td>' +
+                        '<td>' + data.kapasitas + '</td>' +
+                        '<td>' + data.koordinat + '</td>' +
+                    '</tr>'
+                );
+            });
+        }
+
+                // Fungsi untuk mengirim data formulir ke server
+        function simpanData() {
+            // Mendapatkan nilai dari input formulir
+            var alamat = $('#inputAlamat').val();
+            var tanggal = $('#inputTanggal').val();
+            var indikator = $('#inputIndikator').val();
+            var kapasitas = $('#inputKapasitas').val();
+            var koordinat = $('#inputKoordinat').val();
+
+            // Menggunakan AJAX untuk mengirim data ke server
+            $.ajax({
+            type: 'POST',
+            url: '{{ route("simpan-data") }}',
+            data: {
+                _token: '{{ csrf_token() }}',
+                alamat: alamat,
+                tanggal: tanggal,
+                indikator: indikator,
+                kapasitas: kapasitas,
+                koordinat: koordinat
+            },
+            success: function(response) {
+                // Panggil fungsi untuk menampilkan data setelah berhasil disimpan
+                tampilkanData(response);
+
+                // Clear input formulir setelah berhasil disimpan
+                $('#inputAlamat, #inputTanggal, #inputIndikator, #inputKapasitas, #inputKoordinat').val('');
+            },
+            error: function(error) {
+                console.error('Gagal menyimpan data:', error);
+            }
+            });
+        }
+
+        // Menambahkan event listener pada tombol "Input Data"
+        $('#inputDataBtn').on('click', function() {
+        openModal();
+        });
+
+        // Menambahkan event listener pada tombol "Simpan"
+        $('#inputDataModal').on('click', '.btn-primary', function() {
+        simpanData();
+        });
+
+        $(document).ready(function() {
+            // Function to fetch and display data
+            function fetchDataAndDisplay() {
+            $.ajax({
+                url: '/tampil-data', // Replace with the actual URL to fetch data
+                method: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                if (response.data) {
+                    // Clear existing rows
+                    $('#Jadwal tbody').empty();
+
+                    // Append new rows with fetched data
+                    $.each(response.data, function(index, data) {
+                    var newRow = '<tr>' +
+                        '<td>' + data.alamat + '</td>' +
+                        '<td>' + data.tanggal + '</td>' +
+                        '<td>' + data.indikator + '</td>' +
+                        '<td>' + data.kapasitas + '</td>' +
+                        '<td>' + data.koordinat + '</td>' +
+                        '</tr>';
+                    $('#Jadwal tbody').append(newRow);
+                    });
+                }
+                },
+                error: function(error) {
+                console.log('Error fetching data:', error);
+                }
+            });
+            }
+
+            // Call the function to fetch and display data initially
+            fetchDataAndDisplay();
+
+            // Add click event to the "Tampilkan Data" button
+            $('#tampilkanDataBtn').on('click', function() {
+            // Call the function to fetch and display data when the button is clicked
+            fetchDataAndDisplay();
+            });
+        });
+
+        // Call the function to fetch and display data initially
+        fetchDataAndDisplay();
+
+        // Add click event to the "Tampilkan Data" button
+        $('#tampilkanDataBtn').on('click', function() {
+        // Call the function to fetch and display data when the button is clicked
+        fetchDataAndDisplay();
+        });
+
+        //hapus
+        function deleteData() {
+        // Implementasi logika penghapusan satu baris data dari yang terakhir
+        // Anda dapat menggunakan AJAX atau metode lain sesuai kebutuhan
+        var lastRowId = $('#JadwalBody tr:last').data('id');
+
+        if (lastRowId) {
+            // Lakukan logika penghapusan menggunakan lastRowId
+            $.ajax({
+                url: '/delete-data', // Ganti dengan URL sebenarnya untuk penghapusan
+                method: 'DELETE',
+                dataType: 'json',
+                data: {
+                    ids: [lastRowId]
+                },
+                success: function(response) {
+                    // Tangani respons sukses
+                    console.log('Baris terakhir dihapus:', response);
+                    // Panggil fungsi untuk mengambil dan menampilkan data setelah penghapusan
+                    fetchDataAndDisplay();
+                },
+                error: function(error) {
+                    console.log('Error menghapus baris terakhir:', error);
+                }
+            });
+        } else {
+            alert('Silahkan Hubungi Admin');
+        }
+        }
+
+        </script>
+
 
     <!-- Tambahkan script Bootstrap dan jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>

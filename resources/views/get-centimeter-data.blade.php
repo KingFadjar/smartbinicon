@@ -18,6 +18,10 @@
   <link rel="stylesheet" href="dist/css/adminlte.min.css">
   <!-- map leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/dt-1.11.5/datatables.min.css"/>
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.css">
+
 
 </head>
 <!--
@@ -217,478 +221,741 @@
             });
             osm.addTo(map);
 
-            var GreenBatteryIcon = L.icon({
-              iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA8ElEQVR4nO2ZwQ2CQBBFOdkFfM6QYA0cMNFE9kRLilZBC9QwtbBtrFkTvRgEnGzA5L/kn3dm9t1+FBGyDdI0NQAsADcRG8dxHW0NAPbYla6R09ecutIvMawyZJZlOwC3sUtPDf/K2M8AaP0bwRYAcN+b3Jm+mj3s3Ji+ckWduyRJriEXsCGGb95LHMLqtUSTXwPAcYEx+ANChXRQIaFCOqiQUCEdVEiokA4qJFRIBxUSKqSDCgkV0kGFhArpoEJChXRQIaFCOqiQrK+Q/feKqfVFnH8oxPDF+VnyXULXrK2/0oxCe2kG31AGrVkJiT54AMn0Tydk96NBAAAAAElFTkSuQmCC',
-              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-              iconSize: [30, 35],
-              iconAnchor: [12, 41],
-              popupAnchor: [1, -34],
-              shadowSize: [41, 41]
+
+
+            // Tambahkan layer Google Streets
+        var googleStreets = L.tileLayer('http://{s}.google.com/vt?lyrs=m&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+        googleStreets.addTo(map);
+
+        // Tambahkan layer Google Satellite
+        var googleSat = L.tileLayer('http://{s}.google.com/vt?lyrs=s&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+
+        // Tambahkan kontrol layer dan overlay
+        var baseLayers = {
+            "OpenStreetMap": osm,
+            "Satellite": googleSat,
+            "Google Map": googleStreets,
+        };
+
+        L.control.layers(baseLayers, overlays).addTo(map);
+        // Definisikan fungsi fetchDataAndDisplay
+function fetchDataAndDisplay() {
+    // Logika untuk mengambil data dan menampilkannya
+    console.log('Fetching data and displaying...');
+}
+
+// Panggil fungsi di sini
+fetchDataAndDisplay();
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Inisialisasi peta
+    var map = L.map('map').setView([0, 0], 2);
+
+    // Tambahkan peta dasar
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Inisialisasi layer untuk marker
+    var overlays = {
+        "ultrasonic_data": L.layerGroup().addTo(map)
+    };
+
+    // Tambahkan kontrol layer ke peta
+    L.control.layers(null, overlays).addTo(map);
+
+    // Inisialisasi markers
+    var ultrasonicData = {!! json_encode($ultrasonics) !!};
+
+    var GreenBatteryIcon = L.icon({
+        iconUrl: 'smartbinlaravel/public/dist/img/green.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        iconSize: [30, 35],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    var YellowBatteryIcon = L.icon({
+        iconUrl: 'smartbinlaravel/public/dist/img/yellow.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        iconSize: [30, 35],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    var RedBatteryIcon = L.icon({
+        iconUrl: 'smartbinlaravel/public/dist/img/red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        iconSize: [30, 35],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
+    ultrasonicData.forEach(function (data) {
+        // Convert string numbers to actual numbers
+        data.lat = parseFloat(data.lat);
+        data.lng = parseFloat(data.lng);
+        data.kosong = parseInt(data.kosong);
+        data.setengah = parseInt(data.setengah);
+        data.penuh = parseInt(data.penuh);
+        data.kapasitas_sampah = parseInt(data.kapasitas_sampah);
+        data.kapasitas_mobil = parseInt(data.kapasitas_mobil);
+
+        // Sesuaikan ini dengan nilai kondisi dari data Anda
+        var kondisi =10;
+        console.log('Nilai kondisi:', kondisi);
+
+        var marker;
+
+        if (kondisi >= 0 && kondisi <= 15) {
+            marker = L.marker([data.lat, data.lng], { icon: RedBatteryIcon }).addTo(overlays["ultrasonic_data"]);
+        } else if (kondisi >= 40 && kondisi <= 45) {
+            marker = L.marker([data.lat, data.lng], { icon: YellowBatteryIcon }).addTo(overlays["ultrasonic_data"]);
+        } else if (kondisi >= 70 && kondisi <= 80) {
+            marker = L.marker([data.lat, data.lng], { icon: GreenBatteryIcon }).addTo(overlays["ultrasonic_data"]);
+        } else {
+            marker = L.marker([data.lat, data.lng]).addTo(overlays["ultrasonic_data"]);
+        }
+
+            // Tambahkan ikon ke marker
+        if (icon) {
+            marker.setIcon(icon);
+        }
+
+        // Add click event on the marker to show popup
+        marker.bindPopup(
+            "<br>Alamat: " + data.alamat +
+            "<br>Lat: " + data.lat +
+            "<br>Lng: " + data.lng +
+            "<br>Kosong: " + data.kosong +
+            "<br>Setengah: " + data.setengah +
+            "<br>Penuh: " + data.penuh +
+            "<br>Kapasitas Sampah: " + data.kapasitas_sampah +
+            "<br>Kapasitas Mobil: " + data.kapasitas_mobil
+        );
+
+        // Add click event on the marker to show popup
+        marker.on('click', L.bind(function (data, e) {
+            var popup = L.popup()
+                .setLatLng(e.latlng)
+                .setContent(
+                    "<br>Alamat: " + data.alamat +
+                    "<br>Lat: " + data.lat +
+                    "<br>Lng: " + data.lng +
+                    "<br>Kosong: " + data.kosong +
+                    "<br>Setengah: " + data.setengah +
+                    "<br>Penuh: " + data.penuh +
+                    "<br>Kapasitas Sampah: " + data.kapasitas_sampah +
+                    "<br>Kapasitas Mobil: " + data.kapasitas_mobil
+                )
+                .openOn(map);
+        }, null, data));
+    });
+
+    // Inisialisasi waypoints untuk routing
+    var waypoints = {!! collect($ultrasonics)->filter(function($ultrasonic) {
+        return is_array($ultrasonic) && array_key_exists('lat', $ultrasonic) && array_key_exists('lng', $ultrasonic);
+    })->map(function($ultrasonic) {
+        return ['lat' => $ultrasonic['lat'], 'lng' => $ultrasonic['lng']];
+    })->values() !!};
+
+    console.log(waypoints);
+
+    var routingControl = L.Routing.control({
+        waypoints: waypoints,
+        routeWhileDragging: true
+    }).addTo(map);
+
+    // Fungsi untuk menghitung rute
+    function calculateRoute() {
+        var startCoord = document.getElementById('startCoord').value.split(',').map(parseFloat);
+        var endCoord = document.getElementById('endCoord').value.split(',').map(parseFloat);
+        routingControl.setWaypoints([L.latLng(startCoord), L.latLng(endCoord)]);
+    }
+
+    $(document).ready(function () {
+        $('.ultrasonic_data').DataTable();
+    });
+        //
+        var OpenStreetMap_BZH = L.tileLayer('https://tile.openstreetmap.bzh/br/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles courtesy of <a href="http://www.openstreetmap.bzh/" target="_blank">Breton OpenStreetMap Team</a>',
+          bounds: [
+            [46.2, -5.5],
+            [50, 0.7]
+          ]
+        });
+        OpenStreetMap_BZH.addTo(map);
+
+        var googleStreets = L.tileLayer('http://{s}.google.com/vt?lyrs=m&x={x}&y={y}&z={z}', {
+          maxZoom: 20,
+          subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+        googleStreets.addTo(map);
+
+        var googleSat = L.tileLayer('http://{s}.google.com/vt?lyrs=s&x={x}&y={y}&z={z}', {
+          maxZoom: 20,
+          subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
+        googleSat.addTo(map);
+
+        var baseLayers = {
+          "OpenStreetMap": osm,
+          "Satelite": googleSat,
+          "Google Map": googleStreets,
+        };
+
+        var overlays = {};
+        for (var i = 0; i < markers.length; i++) {
+          overlays['Titik ' + (i + 1)] = markers[i];
+        };
+
+        L.control.layers(baseLayers, overlays).addTo(map);
+      </script>
+    </div>
+
+    <!-- Menu Jadwal -->
+    <div id="Jadwal">
+        <div class="col-md-20 mt-3">
+            <div class="card">
+                <div class="card-header border-transparent">
+                    <h3 class="card-title">Jadwal SmartBin</h3>
+                </div>
+                <!-- /.card-header -->
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table m-0">
+                            <thead>
+                                <tr>
+                                    <th>Alamat</th>
+                                    <th>Tanggal</th>
+                                    <th>Indikator Sampah</th>
+                                    <th>Kapasitas</th>
+                                    <th>Titik Kordinat</th>
+
+                                </tr>
+                            </thead>
+                            <tbody id="JadwalBody">
+                                <!-- Data will be displayed here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- /.card-body -->
+                <div class="card-footer clearfix">
+                    <a href="javascript:void(0)" class="btn btn-sm btn-info float-left" id="inputDataBtn">Input Data</a>
+                    <a href="javascript:void(0)" class="btn btn-sm btn-info float-right" id="hapusDataBtn" onclick="deleteData()">Hapus Data</a>
+
+                </div>
+                <!-- /.card-footer -->
+            </div>
+        </div>
+    </div>
+</section>
+
+        <!-- Tambahkan script Bootstrap dan jQuery -->
+        <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+        <script type="text/javascript" src="https://cdn.datatables.net/v/dt/dt-1.11.5/datatables.min.js"></script>
+        <!-- Tambahkan script Bootstrap (pastikan untuk menyertakan file Bootstrap sebelumnya) -->
+        <script src="path/to/bootstrap.min.js"></script>
+
+        <!-- Tambahkan script JavaScript -->
+
+        <!-- Popup Modal -->
+        <div class="modal fade" id="inputDataModal" tabindex="-1" role="dialog" aria-labelledby="inputDataModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="inputDataModalLabel">Input Data</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            </div>
+            <div class="modal-body">
+            <!-- Form untuk mengisi data -->
+            <form action="{{ route('simpan-data') }}" method="post">
+                @csrf
+                <div class="form-group">
+                <label for="inputAlamat">Alamat</label>
+                <input type="text" class="form-control" id="inputAlamat" placeholder="Masukkan alamat" name="alamat" required>
+                </div>
+                <div class="form-group">
+                <label for="inputTanggal">Tanggal</label>
+                <input type="text" class="form-control" id="inputTanggal" placeholder="Masukkan tanggal" name="tanggal" required>
+                </div>
+                <div class="form-group">
+                <label for="inputIndikator">Indikator Sampah</label>
+                <input type="text" class="form-control" id="inputIndikator" placeholder="Masukkan indikator sampah" name="indikator" required>
+                </div>
+                <div class="form-group">
+                <label for="inputKapasitas">Kapasitas</label>
+                <input type="text" class="form-control" id="inputKapasitas" placeholder="Masukkan kapasitas" name="kapasitas" required>
+                </div>
+                <div class="form-group">
+                <label for="inputKoordinat">Titik Koordinat</label>
+                <input type="text" class="form-control" id="inputKoordinat" placeholder="Masukkan titik koordinat" name="koordinat" required>
+                </div>
+                <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>
+                <button type="button" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+            </div>
+        </div>
+        </div>
+        </div>
+
+        <script>
+        // Fungsi untuk membuka modal
+        function openModal() {
+        $('#inputDataModal').modal('show');
+        }
+
+        // Fungsi untuk menutup modal
+        function closeModal() {
+        $('#inputDataModal').modal('hide');
+        }
+
+            // Inisialisasi DataTables
+        $(document).ready(function() {
+            $('#jadwalTable').DataTable();
+        });
+
+        // Fungsi untuk menampilkan data ke dalam tabel
+        function tampilkanData(response) {
+            // Hapus data lama dari tabel
+            $('#jadwalTable tbody').empty();
+
+            // Iterasi melalui data dan tambahkan ke dalam tabel
+            $.each(response, function(index, data) {
+                $('#jadwalTable tbody').append(
+                    '<tr>' +
+                        '<td>' + data.alamat + '</td>' +
+                        '<td>' + data.tanggal + '</td>' +
+                        '<td>' + data.indikator + '</td>' +
+                        '<td>' + data.kapasitas + '</td>' +
+                        '<td>' + data.koordinat + '</td>' +
+                    '</tr>'
+                );
             });
+        }
 
-            var YellowBatteryIcon = L.icon({
-              iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA7ElEQVR4nO2ZMQ6CQBREqaxF7QgMNYfREwieRtGzafQMJu4lKMasiTYGAX82aDIvmXr///u6iSIhfoM8z1cAHAB2xKVpuox+DQDudJmz4fRjjueFX+I2ypBFUUwA7Nsu3TX8M20/A6D2bwRbAMCh2iS8urj3sH1zdTHLKmGWZbuQC7gQwzevJWZh9RqiybcBQC3Qhn6AUsiGFKIUsiGFKIVsSCFKIRtSiFLIhhSiFLIhhSiFbEghSiEbUohSyIYUohSyIYU4vkLu3yum2hdx/qEQw6/LR8m3DV2z1v5KPQrtobn5hjJozSpE9MYd75mwIp5lCvsAAAAASUVORK5CYII=',
-              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-              iconSize: [30, 35],
-              iconAnchor: [12, 41],
-              popupAnchor: [1, -34],
-              shadowSize: [41, 41]
+                // Fungsi untuk mengirim data formulir ke server
+        function simpanData() {
+            // Mendapatkan nilai dari input formulir
+            var alamat = $('#inputAlamat').val();
+            var tanggal = $('#inputTanggal').val();
+            var indikator = $('#inputIndikator').val();
+            var kapasitas = $('#inputKapasitas').val();
+            var koordinat = $('#inputKoordinat').val();
+
+            // Menggunakan AJAX untuk mengirim data ke server
+            $.ajax({
+            type: 'POST',
+            url: '{{ route("simpan-data") }}',
+            data: {
+                _token: '{{ csrf_token() }}',
+                alamat: alamat,
+                tanggal: tanggal,
+                indikator: indikator,
+                kapasitas: kapasitas,
+                koordinat: koordinat
+            },
+            success: function(response) {
+                // Panggil fungsi untuk menampilkan data setelah berhasil disimpan
+                tampilkanData(response);
+
+                // Clear input formulir setelah berhasil disimpan
+                $('#inputAlamat, #inputTanggal, #inputIndikator, #inputKapasitas, #inputKoordinat').val('');
+            },
+            error: function(error) {
+                console.error('Gagal menyimpan data:', error);
+            }
             });
+        }
 
-            var RedBatteryIcon = L.icon({
-              iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA6ElEQVR4nO2ZMQ6CQBBFt7KeBToCn5rD6A3U0yh6Ob0Ee40xG0NlEHCyAZP/kl/vzOzrvnOEbIOmaQ4AAgCdSKiqau+2BoDwzHNVka95FEVcol9lyLZtdwBuY5eeGn7I2M8A6OIbyRYAcD+XpQbvZw87N8F7PZWl1nV9TblASDG8DktkWVq9lmjyawAoFxiDPyBUyAYVEipkgwoJFbJBhYQK2aBCQoVsUCGhQjaokFAhG1RIqJANKiRUyAYVEipkgwrJ+gqFf6+YuljExYdSDH98l3yX1DVrF680o9Bemj42lElrVkLcBy96RVxBGRRIAgAAAABJRU5ErkJggg==',
-              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-              iconSize: [30, 35],
-              iconAnchor: [12, 41],
-              popupAnchor: [1, -34],
-              shadowSize: [41, 41]
+        // Menambahkan event listener pada tombol "Input Data"
+        $('#inputDataBtn').on('click', function() {
+        openModal();
+        });
+
+        // Menambahkan event listener pada tombol "Simpan"
+        $('#inputDataModal').on('click', '.btn-primary', function() {
+        simpanData();
+        });
+
+        $(document).ready(function() {
+            // Function to fetch and display data
+            function fetchDataAndDisplay() {
+            $.ajax({
+                url: '/tampil-data', // Replace with the actual URL to fetch data
+                method: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                if (response.data) {
+                    // Clear existing rows
+                    $('#Jadwal tbody').empty();
+
+                    // Append new rows with fetched data
+                    $.each(response.data, function(index, data) {
+                    var newRow = '<tr>' +
+                        '<td>' + data.alamat + '</td>' +
+                        '<td>' + data.tanggal + '</td>' +
+                        '<td>' + data.indikator + '</td>' +
+                        '<td>' + data.kapasitas + '</td>' +
+                        '<td>' + data.koordinat + '</td>' +
+                        '</tr>';
+                    $('#Jadwal tbody').append(newRow);
+                    });
+                }
+                },
+                error: function(error) {
+                console.log('Error fetching data:', error);
+                }
             });
-
-            var coordinates = [
-              [-6.244528, 106.832361],
-              [-6.245111, 106.832306],
-              [-6.245233, 106.831592],
-              [-6.245192, 106.831250],
-              [-6.245311, 106.830833],
-              [-6.245233, 106.830694],
-              [-6.244889, 106.830750],
-              [-6.244500, 106.830917],
-              [-6.244417, 106.830917],
-              [-6.244306, 106.830944],
-              [-6.244306, 106.830833],
-              [-6.243806, 106.830750],
-              [-6.243750, 106.830806],
-              [-6.243667, 106.830750],
-              [-6.243389, 106.830694],
-              [-6.243333, 106.830750],
-              [-6.243194, 106.830694],
-              [-6.242972, 106.830583],
-              [-6.242972, 106.830750],
-              [-6.242972, 106.830917],
-              [-6.242972, 106.831639],
-              [-6.242972, 106.831694],
-              [-6.242972, 106.831889],
-              [-6.242972, 106.832194],
-              [-6.242972, 106.832528],
-              [-6.242972, 106.882333],
-              [-6.242972, 106.882778],
-              [-6.242972, 106.882639],
-              [-6.242972, 106.882917],
-              [-6.242972, 106.882222],
-              [-6.242972, 106.882667],
-              [-6.242972, 106.882250],
-              [-6.242972, 106.882222],
-              [-6.242972, 106.882361],
-              [-6.242972, 106.881917]
-            ];
-
-            var markers = [];
-            for (var i = 0; i < coordinates.length; i++) {
-              var icon = i % 3 === 0 ? RedBatteryIcon : i % 3 === 1 ? YellowBatteryIcon : GreenBatteryIcon;
-              var marker = L.marker(coordinates[i], {
-                icon: icon,
-                draggable: true
-              }).bindPopup('mark ' + (i + 1));
-              marker.addTo(map);
             }
 
-            var OpenStreetMap_BZH = L.tileLayer('https://tile.openstreetmap.bzh/br/{z}/{x}/{y}.png', {
-              maxZoom: 19,
-              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles courtesy of <a href="http://www.openstreetmap.bzh/" target="_blank">Breton OpenStreetMap Team</a>',
-              bounds: [
-                [46.2, -5.5],
-                [50, 0.7]
-              ]
+            // Call the function to fetch and display data initially
+            fetchDataAndDisplay();
+
+            // Add click event to the "Tampilkan Data" button
+            $('#tampilkanDataBtn').on('click', function() {
+            // Call the function to fetch and display data when the button is clicked
+            fetchDataAndDisplay();
             });
-            OpenStreetMap_BZH.addTo(map);
+        });
 
-            var googleStreets = L.tileLayer('http://{s}.google.com/vt?lyrs=m&x={x}&y={y}&z={z}', {
-              maxZoom: 20,
-              subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        // Call the function to fetch and display data initially
+        fetchDataAndDisplay();
+
+        // Add click event to the "Tampilkan Data" button
+        $('#tampilkanDataBtn').on('click', function() {
+        // Call the function to fetch and display data when the button is clicked
+        fetchDataAndDisplay();
+        });
+
+        //hapus
+        function deleteData() {
+        // Implementasi logika penghapusan satu baris data dari yang terakhir
+        // Anda dapat menggunakan AJAX atau metode lain sesuai kebutuhan
+        var lastRowId = $('#JadwalBody tr:last').data('id');
+
+        if (lastRowId) {
+            // Lakukan logika penghapusan menggunakan lastRowId
+            $.ajax({
+                url: '/delete-data', // Ganti dengan URL sebenarnya untuk penghapusan
+                method: 'DELETE',
+                dataType: 'json',
+                data: {
+                    ids: [lastRowId]
+                },
+                success: function(response) {
+                    // Tangani respons sukses
+                    console.log('Baris terakhir dihapus:', response);
+                    // Panggil fungsi untuk mengambil dan menampilkan data setelah penghapusan
+                    fetchDataAndDisplay();
+                },
+                error: function(error) {
+                    console.log('Error menghapus baris terakhir:', error);
+                }
             });
-            googleStreets.addTo(map);
+        } else {
+            alert('Silahkan Hubungi Admin');
+        }
+        }
 
-            var googleSat = L.tileLayer('http://{s}.google.com/vt?lyrs=s&x={x}&y={y}&z={z}', {
-              maxZoom: 20,
-              subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-            });
-            googleSat.addTo(map);
+        </script>
 
-            var baseLayers = {
-              "OpenStreetMap": osm,
-              "Satelite": googleSat,
-              "Google Map": googleStreets,
-            };
 
-            var overlays = {};
-            for (var i = 0; i < markers.length; i++) {
-              overlays['Titik ' + (i + 1)] = markers[i];
-            };
+    <!-- Tambahkan script Bootstrap dan jQuery -->
 
-            L.control.layers(baseLayers, overlays).addTo(map);
-          </script>
-        </div>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Tambahkan script Bootstrap (pastikan untuk menyertakan file Bootstrap sebelumnya) -->
+    <script src="path/to/bootstrap.min.js"></script>
 
-        <!-- Menu Jadwal -->
-        <div id="Jadwal">
-          <div class="col-md-20 mt-3">
-            <div class="card">
-              <div class="card-header border-transparent">
-                <h3 class="card-title">Daftar SmartBin</h3>
+    <!-- Tambahkan script JavaScript -->
+    <script>
+      document.getElementById('inputDataBtn').addEventListener('click', function() {
+        // Tampilkan popup untuk mengisi data
+        $('#inputDataModal').modal('show');
+      });
+
+      function addData() {
+        // Logika untuk mengambil data dari inputan popup dan menambahkannya ke dalam tabel
+        var jadwalTable = document.getElementById('Jadwal').querySelector('table tbody');
+
+        // Ambil data dari inputan popup
+        var newData = [
+          document.getElementById('inputAlamat').value,
+          document.getElementById('inputTanggal').value,
+          document.getElementById('inputIndikator').value,
+          document.getElementById('inputKapasitas').value,
+          document.getElementById('inputKoordinat').value
+        ];
+
+        // Buat elemen baris baru
+        var newRow = jadwalTable.insertRow();
+
+        // Isi data ke dalam baris
+        for (var i = 0; i < newData.length; i++) {
+          var cell = newRow.insertCell(i);
+          cell.innerHTML = newData[i];
+        }
+
+        // Sembunyikan popup setelah menambahkan data
+        $('#inputDataModal').modal('hide');
+      }
+    </script>
+
+    <!-- Popup Modal -->
+    <div class="modal fade" id="inputDataModal" tabindex="-1" role="dialog" aria-labelledby="inputDataModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="inputDataModalLabel">Input Data</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <!-- Form untuk mengisi data -->
+            <form>
+              <div class="form-group">
+                <label for="inputAlamat">Alamat</label>
+                <input type="text" class="form-control" id="inputAlamat" placeholder="Masukkan alamat">
               </div>
-              <!-- /.card-header -->
-              <div class="card-body p-0">
-                <div class="table-responsive">
-                  <table class="table m-0">
-                    <thead>
-                      <tr>
-                        <th>Alamat</th>
-                        <th>Tanggal</th>
-                        <th>Waktu</th>
-                        <th>Keterangan</th>
-                        <th>Titik Kordinat</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 1</a></td>
-                        <td>02 Februari 2024</td>
-                        <td><span class="badge badge-success">09:00</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f39c12" data-height="20">Setengah</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.244528, 106.832361</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 2</a></td>
-                        <td>03 Maret 2024</td>
-                        <td><span class="badge badge-success">10:00</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#00a65a" data-height="20">Kosong</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.245233, 106.831592</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 3</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-warning">08:00</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f39c12" data-height="20">Setengah</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.245192, 106.831250</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan kuningan 4</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-danger">Delivered</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f56954" data-height="20">Penuh</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.245311, 106.830833</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 5</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-info">Processing</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#00c0ef" data-height="20">Kosong</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.245233, 106.830694</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 6</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-warning">Pending</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f39c12" data-height="20">Setengah</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.244889, 106.830750</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 7</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-danger">Delivered</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f56954" data-height="20">Penuh</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.244500, 106.830917</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 8</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-info">Processing</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#00c0ef" data-height="20">Kosong</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.244417, 106.830917</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 9</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-warning">Pending</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f39c12" data-height="20">Setengah</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.244306, 106.830944</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 10</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-danger">Delivered</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f56954" data-height="20">Penuh</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.244306, 106.830833</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 11</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-success">Shipped</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#00a65a" data-height="20">Kosong</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.243806, 106.830750</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 12</a></td>
-                        <td>02 Februari 2024</td>
-                        <td><span class="badge badge-success">09:00</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f39c12" data-height="20">Setengah</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.243750, 106.830806</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Sudirman 13</a></td>
-                        <td>03 Maret 2024</td>
-                        <td><span class="badge badge-success">10:00</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#00a65a" data-height="20">Kosong</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.243667, 106.830750</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 14</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-warning">08:00</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f39c12" data-height="20">Setengah</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.243389, 106.830694</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan kuningan 15</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-danger">Delivered</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f56954" data-height="20">Penuh</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.243333, 106.830750</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 16</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-info">Processing</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#00c0ef" data-height="20">Kosong</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.243194, 106.830694</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 17</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-warning">Pending</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f39c12" data-height="20">Setengah</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.830583</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 18</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-danger">Delivered</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f56954" data-height="20">Penuh</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.830750</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 19</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-info">Processing</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#00c0ef" data-height="20">Kosong</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.830917</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 20</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-warning">Pending</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f39c12" data-height="20">Setengah</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.831639</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 21</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-danger">Delivered</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f56954" data-height="20">Penuh</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.831694</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 22</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-success">Shipped</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#00a65a" data-height="20">Kosong</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.831889</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 23</a></td>
-                        <td>02 Februari 2024</td>
-                        <td><span class="badge badge-success">09:00</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f39c12" data-height="20">Setengah</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.832194</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 24</a></td>
-                        <td>03 Maret 2024</td>
-                        <td><span class="badge badge-success">10:00</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#00a65a" data-height="20">Kosong</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.832528</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 25</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-warning">08:00</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f39c12" data-height="20">Setengah</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.882333</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan kuningan 26</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-danger">Delivered</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f56954" data-height="20">Penuh</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.882778</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 27</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-info">Processing</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#00c0ef" data-height="20">Kosong</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.882639</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 28</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-warning">Pending</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f39c12" data-height="20">Setengah</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.882917</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 29</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-danger">Delivered</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f56954" data-height="20">Penuh</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.882222</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 30</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-info">Processing</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#00c0ef" data-height="20">Kosong</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.882667</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 31</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-warning">Pending</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f39c12" data-height="20">Setengah</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.882250</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 32</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-danger">Delivered</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f56954" data-height="20">Penuh</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.882222</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 33</a></td>
-                        <td>20 Desember 2023</td>
-                        <td><span class="badge badge-success">Shipped</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#00a65a" data-height="20">Kosong</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.882361</a></td>
-                      </tr>
-                      <tr>
-                        <td><a href="pages/examples/invoice.html">Jalan Kuningan 34</a></td>
-                        <td>02 Februari 2024</td>
-                        <td><span class="badge badge-success">09:00</span></td>
-                        <td>
-                          <div class="sparkbar" data-color="#f39c12" data-height="20">Setengah</div>
-                        </td>
-                        <td><a href="pages/examples/invoice.html">-6.242972, 106.881917</a></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <!-- /.table-responsive -->
+              <div class="form-group">
+                <label for="inputTanggal">Tanggal</label>
+                <input type="text" class="form-control" id="inputTanggal" placeholder="Masukkan tanggal">
               </div>
-              <!-- /.card-body -->
-              <div class="card-footer clearfix">
-                <a href="javascript:void(0)" class="btn btn-sm btn-info float-left">Place New Order</a>
-                <a href="javascript:void(0)" class="btn btn-sm btn-secondary float-right">View All Orders</a>
+              <div class="form-group">
+                <label for="inputIndikator">Indikator Sampah</label>
+                <input type="text" class="form-control" id="inputIndikator" placeholder="Masukkan indikator sampah">
               </div>
-              <!-- /.card-footer -->
-            </div>
+              <div class="form-group">
+                <label for="inputKapasitas">Kapasitas</label>
+                <input type="text" class="form-control" id="inputKapasitas" placeholder="Masukkan kapasitas">
+              </div>
+              <div class="form-group">
+                <label for="inputKoordinat">Titik Koordinat</label>
+                <input type="text" class="form-control" id="inputKoordinat" placeholder="Masukkan titik koordinat">
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>
+            <button type="button" class="btn btn-primary" onclick="addData()">Simpan</button>
           </div>
         </div>
-      </section>
-
-      <!-- Control Sidebar -->
-      <aside class="control-sidebar control-sidebar-dark">
-        <!-- Control sidebar content goes here -->
-      </aside>
-      <!-- /.control-sidebar -->
-
-      <!-- ./wrapper -->
+      </div>
     </div>
+
+    <!-- Skrip JavaScript untuk menangani aksi penutup modal -->
+    <script>
+      function closeModal() {
+        // Sembunyikan modal
+        $('#inputDataModal').modal('hide');
+
+        // Reset nilai formulir jika diperlukan
+        document.getElementById('inputAlamat').value = '';
+        document.getElementById('inputTanggal').value = '';
+        document.getElementById('inputIndikator').value = '';
+        document.getElementById('inputKapasitas').value = '';
+        document.getElementById('inputKoordinat').value = '';
+      }
+    </script>
+
+    <!-- Tambahkan script Bootstrap (pastikan untuk menyertakan file Bootstrap sebelumnya) -->
+    <script src="path/to/bootstrap.min.js"></script>
+
+    <!-- Tambahkan script JavaScript -->
+    <script>
+      // Memeriksa apakah ada data yang sudah disimpan di lokal penyimpanan
+      var savedData = JSON.parse(localStorage.getItem('savedData')) || [];
+
+      // Memulai dengan memuat data yang sudah ada
+      loadSavedData();
+
+      document.getElementById('inputDataBtn').addEventListener('click', function() {
+        // Tampilkan popup untuk mengisi data
+        $('#inputDataModal').modal('show');
+      });
+
+      function addData() {
+        // Logika untuk mengambil data dari inputan popup dan menambahkannya ke dalam tabel
+        var jadwalTable = document.getElementById('Jadwal').querySelector('table tbody');
+
+        // Ambil data dari inputan popup
+        var newData = [
+          document.getElementById('inputAlamat').value,
+          document.getElementById('inputTanggal').value,
+          document.getElementById('inputIndikator').value,
+          document.getElementById('inputKapasitas').value,
+          document.getElementById('inputKoordinat').value
+        ];
+
+        // Tambahkan data baru ke dalam array
+        savedData.push(newData);
+
+        // Simpan data ke lokal penyimpanan
+        localStorage.setItem('savedData', JSON.stringify(savedData));
+
+        // Tambahkan data ke dalam tabel
+        addDataToTable(newData);
+
+        // Sembunyikan popup setelah menambahkan data
+        $('#inputDataModal').modal('hide');
+
+        // Reset nilai formulir jika diperlukan
+        resetForm();
+      }
+
+      function loadSavedData() {
+        // Tampilkan data yang sudah disimpan di tabel
+        for (var i = 0; i < savedData.length; i++) {
+          addDataToTable(savedData[i]);
+        }
+      }
+
+      function addDataToTable(data) {
+        // Tambahkan data ke dalam tabel
+        var jadwalTable = document.getElementById('Jadwal').querySelector('table tbody');
+        var newRow = jadwalTable.insertRow();
+
+        for (var i = 0; i < data.length; i++) {
+          var cell = newRow.insertCell(i);
+          cell.innerHTML = data[i];
+        }
+
+        // Tambahkan checkbox pada setiap baris
+        var checkboxCell = newRow.insertCell(data.length);
+        var checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkboxCell.appendChild(checkbox);
+      }
+
+      function resetForm() {
+        // Reset nilai formulir
+        document.getElementById('inputAlamat').value = '';
+        document.getElementById('inputTanggal').value = '';
+        document.getElementById('inputIndikator').value = '';
+        document.getElementById('inputKapasitas').value = '';
+        document.getElementById('inputKoordinat').value = '';
+      }
+
+      function deleteSelected() {
+        var jadwalTable = document.getElementById('Jadwal').querySelector('table tbody');
+        var selectedRows = [];
+
+        // Cari baris yang dipilih
+        for (var i = 0; i < jadwalTable.rows.length; i++) {
+          var row = jadwalTable.rows[i];
+
+          // Periksa apakah ada elemen checkbox pada baris
+          var checkbox = row.cells[row.cells.length - 1].querySelector('input[type="checkbox"]');
+          if (checkbox && checkbox.checked) {
+            selectedRows.push(row);
+          }
+        }
+
+        // Hapus baris yang dipilih dari penyimpanan lokal dan tabel
+        for (var i = selectedRows.length - 1; i >= 0; i--) {
+          var row = selectedRows[i];
+          var index = row.rowIndex - 1; // Mengurangkan satu karena baris header tidak dihitung
+
+          // Kirim permintaan Ajax ke server untuk menghapus data
+          var id = row.dataset.id; // Sesuaikan dengan cara Anda menyimpan ID
+          deleteDataOnServer(id); // Panggil fungsi untuk menghapus data di server
+
+          savedData.splice(index, 1);
+          localStorage.setItem('savedData', JSON.stringify(savedData));
+          jadwalTable.deleteRow(index);
+        }
+      }
+      // Fungsi untuk menghapus data pada server
+      function deleteDataOnServer(id) {
+        $.ajax({
+          type: 'POST',
+          url: '/delete-endpoint',
+          data: {
+            id: id
+          },
+          success: function(response) {
+            // Handle respons dari server
+            console.log(response);
+          },
+          error: function(error) {
+            console.error('Error:', error);
+          }
+        });
+        // Tambahkan CSRF token ke setiap permintaan Ajax
+        $.ajaxSetup({
+          headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+          }
+        });
+      }
+    </script>
+
+    <!-- Popup Modal -->
+    <div class="modal fade" id="inputDataModal" tabindex="-1" role="dialog" aria-labelledby="inputDataModalLabel" aria-hidden="true">
+      <!-- ... (sesuaikan dengan bagian sebelumnya) ... -->
+    </div>
+
+    <!-- Skrip JavaScript untuk menangani aksi penutup modal -->
+    <script>
+      function closeModal() {
+        // Sembunyikan modal
+        $('#inputDataModal').modal('hide');
+
+        // Reset nilai formulir jika diperlukan
+        resetForm();
+      }
+    </script>
+
+    <!-- Control Sidebar -->
+    <aside class="control-sidebar control-sidebar-dark">
+      <!-- Control sidebar content goes here -->
+    </aside>
+    <!-- ./wrapper -->
+  </div>
   </div>
   <!-- REQUIRED SCRIPTS -->
-
   <!-- jQuery -->
   <script src="plugins/jquery/jquery.min.js"></script>
   <!-- Bootstrap -->
   <script src="plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <!-- AdminLTE -->
+  <!-- overlayScrollbars -->
+  <script src="plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js"></script>
+  <!-- AdminLTE App -->
   <script src="dist/js/adminlte.js"></script>
+
+  <!-- PAGE PLUGINS -->
+  <!-- jQuery Mapael -->
+  <script src="plugins/jquery-mousewheel/jquery.mousewheel.js"></script>
+  <script src="plugins/raphael/raphael.min.js"></script>
+  <script src="plugins/jquery-mapael/jquery.mapael.min.js"></script>
+  <script src="plugins/jquery-mapael/maps/usa_states.min.js"></script>
+  <!-- ChartJS -->
+  <script src="plugins/chart.js/Chart.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js" integrity="sha384-3s9F2m0lf4ZO+fScCpi42/XF4r+4JLEbQZc6n5My3Ooi6lMq9ZMhJrNp4b4lJdo4" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+  <!-- DataTables JS -->
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.js"></script>
+
+
 </body>
 
 </html>
